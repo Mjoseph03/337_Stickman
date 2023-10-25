@@ -1,2 +1,2 @@
 # 337_Stickman
-Final project for EGRE 337
+Final project for EGRE 347
