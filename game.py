@@ -99,7 +99,7 @@ class Game:
         for spawner in self.tilemap.extract([('spawners', 0), ('spawners', 1)]):
             if spawner['variant'] == 0:
                 self.player2.pos = spawner['pos']
-                self.player1.pos = [5,5]
+                self.player1.pos = spawner['pos']
                 self.player1.air_time = 0
                 self.player2.air_time = 0
             
@@ -132,8 +132,8 @@ class Game:
             self.scroll[0] += (mid_x - self.display.get_width() / 2 - self.scroll[0]) / 30
             self.scroll[1] += (mid_y - self.display.get_height() / 2 - self.scroll[1]) / 30
             
-            #render_scroll = (int(self.scroll[0]), 0)
-            render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
+            render_scroll = (int(self.scroll[0]), 0)
+            #render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
             
             for rect in self.leaf_spawners:
                 if random.random() * 49999 < rect.width * rect.height:

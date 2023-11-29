@@ -259,7 +259,7 @@ class Player(Physics):
     def attack(self):
         self.attacking += 1
         
-        if self.gun and len(self.game.projectiles) < 5:
+        if self.gun and len(self.game.projectiles) < 120:
             if (self.flip):
                 #self.game.sfx['shoot'].play()
                 #appending to projectile list, adding some offset based on direction
@@ -271,7 +271,7 @@ class Player(Physics):
 
             if (not self.flip):
                 #self.game.sfx['shoot'].play()
-                self.game.projectiles.append([[self.rect().centerx + 7, self.rect().centery], 1.5, 0])
+                self.game.projectiles.append([[self.rect().centerx + 7, self.rect().centery], 8, 0])
                 for i in range(4):
                     self.game.sparks.append(Spark(self.game.projectiles[-1][0],
                                                   random.random() - 0.5,
