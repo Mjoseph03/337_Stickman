@@ -1,11 +1,4 @@
-import math
-import random
-import time
-
 import pygame
-
-from scripts.particle import Particle
-from scripts.spark import Spark
         
 class Physics:
     def __init__(self, game, e_type, pos, size):
@@ -136,11 +129,12 @@ class Player(Physics):
         self.dead = 0
         self.gun = 0
         self.sword = 0
+        self.can_respawn = False
          
     def update(self, tilemap, movement=(0, 0)):
         super().update(tilemap, movement=movement)
-        
         self.check_collisions(movement)
+        self.update_self()
         self.update_dashing()
         
     def check_collisions(self, movement):
@@ -229,13 +223,8 @@ class Player(Physics):
                 self.dashing = 60
     
     def dash_effect(self):
-         #makes a burst of 20 particles in a circle
          if abs(self.dashing) in {60, 50}:
-            for i in range(20):
-                angle = random.random() * math.pi * 2 #random angle within 360 deg
-                speed = random.random() * 0.5 + 0.5 #random speed
-                pvelocity = [math.cos(angle) * speed, math.sin(angle) * speed] #calculating based on speed and angle of particle
-                self.game.particles.append(Particle(self.game, 'particle', self.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
+             self.game.effect_factory.create_ball(self)
 
     def dash_movement(self):
         #normalizing dashing after its been executed
@@ -253,29 +242,20 @@ class Player(Physics):
                 self.velocity[0] *= 0.1
                 
             #creating the particle stream while dashing
-            pvelocity = [abs(self.dashing) / self.dashing * random.random() * 3, 0]
-            self.game.particles.append(Particle(self.game, 'particle', self.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
+            self.game.effect_factory.create_dash_stream(self)
     
     def attack(self):
         self.attacking += 1
-        
-        if self.gun and len(self.game.projectiles) < 120:
+        if self.gun and self.can_shoot():
             if (self.flip):
                 #self.game.sfx['shoot'].play()
-                #appending to projectile list, adding some offset based on direction
                 self.game.projectiles.append([[self.rect().centerx - 7, self.rect().centery], -1.5, 0])
-                for i in range(4):
-                    self.game.sparks.append(Spark(self.game.projectiles[-1][0],
-                                                  random.random() - 0.5 + math.pi,
-                                                  2 + random.random()))
+                self.game.effect_factory.create_shooting_spark(self.game.projectiles, True)
 
             if (not self.flip):
                 #self.game.sfx['shoot'].play()
-                self.game.projectiles.append([[self.rect().centerx + 7, self.rect().centery], 8, 0])
-                for i in range(4):
-                    self.game.sparks.append(Spark(self.game.projectiles[-1][0],
-                                                  random.random() - 0.5,
-                                                  2 + random.random()))
+                self.game.projectiles.append([[self.rect().centerx + 7, self.rect().centery], 1.5, 0])
+                self.game.effect_factory.create_shooting_spark(self.game.projectiles, False)
             
             self.attacking = 0
 
@@ -283,13 +263,34 @@ class Player(Physics):
         if self.sword:
             pass
 
+    def update_self(self):
+        if self.dead:
+            self.game.effect_factory.create_explosion(self)
+            self.reset_self()
+    
+    def reset_self(self):
+        self.air_time = 0
+        self.jumps = 1
+        self.dead = 0
+        self.wall_slide = False
+        self.dashing = 0
+        self.attacking = 0
+        self.health = 10
+        self.gun = 0
+        self.sword = 0
+        self.can_respawn = True
+        
+
+    def can_shoot(self):
+        if len(self.game.projectiles) < 5:
+            return True
+        return False
         
 class BattleManager:
-    def __init__(self, game, player1, player2, assets):
+    def __init__(self, game, player1, player2):
         self.game = game
         self.player1 = player1
         self.player2 = player2
-        self.assets = assets
         self.unlock = [False, False]
         self.maps = [0,1,2,3,4,5,6,7,8]
         self.current_map = 4
@@ -301,15 +302,10 @@ class BattleManager:
         self.update_players()
         
     def update_players(self):
-        if self.player1.dead:
-            self.player_death_effect(self.player1)
-            self.reset_player(self.player1)
-            self.player1.pos = [5,5] #temp
-        
-        if self.player2.dead:
-            self.player_death_effect(self.player2)
-            self.reset_player(self.player2)
-            self.player2.pos = [5,5]
+        self.player1.update_self()
+        self.player2.update_self()
+        self.respawn_player_if_dead(self.player1)
+        self.respawn_player_if_dead(self.player2)
             
     def is_player_dashing(self, player):
         if abs(player.dashing) > 50:
@@ -367,36 +363,12 @@ class BattleManager:
                 self.player2.dead += 1
                 projectiles.remove(projectile)
     
+    def respawn_player_if_dead(self, player):
+        if player.can_respawn:
+            player.pos = [5,5]
+            player.can_respawn = False
+    
     def players_collision_sword(self):
         #todo: find and use a sword png to do collision detection on. Similar to bullet
         pass    
     
-    def player_death_effect(self, player):
-        if player.dead:
-            #creates an explosion like effect to make player deaths obvious 
-            for i in range(30):
-                angle = random.random() * math.pi * 2
-                speed = random.random() * 5
-                self.game.sparks.append(Spark(player.rect().center, angle,
-                                              2 + random.random()))
-                self.game.particles.append(Particle(self, 'particle', 
-                                                    player.rect().center,
-                                                    velocity=[math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5],
-                                                    frame=random.randint(0, 7)))
-    
-    def rect(self, player):
-        #helper to convert pixels to rect 
-        return pygame.Rect(player.pos[0], player.pos[1], player.size[0], player.size[1])
-    
-    #outside of the player class cause of a weird bug   
-    def reset_player(self, player):
-        player.air_time = 0
-        player.jumps = 1
-        player.wall_slide = False
-        player.dashing = 0
-        player.attacking = 0
-        player.health = 10
-        player.dead = 0
-        player.gun = 1
-        player.sword = 0
-        player.velocity = [0,0]
