@@ -9,8 +9,7 @@ from scripts.utils import load_image, load_images, Animation
 from scripts.entities import  Player,InputHandler,BattleManager
 from scripts.tilemap import Tilemap
 from scripts.clouds import Clouds
-from scripts.particle import Particle
-from scripts.spark import Spark
+from scripts.effects import EffectFactory
 
 class Game:
     def __init__(self):
@@ -54,6 +53,7 @@ class Game:
                                 'dash' : pygame.K_m,
                                 'attack' : pygame.K_RSHIFT
                             }
+        
         #todo: fix sounds     
         # self.sfx = {
         #     'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
@@ -71,13 +71,15 @@ class Game:
         
         self.tilemap = Tilemap(self, tile_size=16)
         self.clouds = Clouds(self.assets['clouds'], count=16)
+        
         self.player1 = Player(self, (50, 50), (8, 15))
         self.player2 = Player(self, (50, 400), (8, 15))
         
         self.player1_input = InputHandler(self.player1_controls, self.player1)
         self.player2_input = InputHandler(self.player2_controls, self.player2)
-        self.battle_manager = BattleManager(self, self.player1, self.player2, self.assets)
-        
+        self.battle_manager = BattleManager(self, self.player1, self.player2)
+
+
         self.player1.gun = 1
         self.player2.gun = 1
         
@@ -85,9 +87,7 @@ class Game:
         self.load_level(self.level)
         self.transition = 0
         self.screenshake = 0
-    
-    def next_map_effect(self):
-        self.transition = min(30, self.transition + 1)  
+        self.effect_factory = EffectFactory(self, self.assets)
     
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
@@ -136,9 +136,7 @@ class Game:
             #render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
             
             for rect in self.leaf_spawners:
-                if random.random() * 49999 < rect.width * rect.height:
-                    pos = (rect.x + random.random() * rect.width, rect.y + random.random() * rect.height)
-                    self.particles.append(Particle(self, 'leaf', pos, velocity=[-0.1, 0.3], frame=random.randint(0, 20)))
+                pass
             
             self.clouds.update()
             self.clouds.render(self.display_2, offset=render_scroll)
@@ -168,9 +166,7 @@ class Game:
                 #checking if bullet hit a solid block, removing it if true and making a spark
                 if self.tilemap.solid_check(projectile[0]):
                     self.projectiles.remove(projectile)
-                    for i in range(4):
-                        #shooting sparks left if projectile is going right and vice versa                                                           
-                        self.sparks.append(Spark(projectile[0], random.random() - 0.5 + (math.pi if projectile[1] > 0 else 0), 2 + random.random()))
+                    self.effect_factory.create_collision_spark(projectile)
                        
                 #disposing of bullet after 6 seconds
                 elif projectile[2] > 360:
