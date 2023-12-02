@@ -128,7 +128,8 @@ class Player(Physics):
         self.health = 10
         self.dead = 0
         self.gun = 0
-        self.sword = 0
+        self.sword = 1      # NOTE IT IS IMPORTANT TO GO INTO GUN PICKUP CLASS AND SET SWORD TO 0 ONCE PICKED UP
+        self.damage = 0     # 
         self.can_respawn = False
          
     def update(self, tilemap, movement=(0, 0)):
@@ -260,8 +261,9 @@ class Player(Physics):
             self.attacking = 0
 
         #todo: trigger an attack animation/change the attack height
-        if self.sword:
-            pass
+        # if self.sword:
+        # NOTE I feel like here there isn't much to be done with animations, what could be added in the sword collision class 
+        # is the hurt animation for the party that was hit
 
     def update_self(self):
         if self.dead:
@@ -277,7 +279,8 @@ class Player(Physics):
         self.attacking = 0
         self.health = 10
         self.gun = 0
-        self.sword = 0
+        self.sword = 1
+        self.damage = 0
         self.can_respawn = True
         
 
@@ -367,8 +370,17 @@ class BattleManager:
         if player.can_respawn:
             player.pos = [5,5]
             player.can_respawn = False
-    
+
     def players_collision_sword(self):
         #todo: find and use a sword png to do collision detection on. Similar to bullet
-        pass    
-    
+        if self.is_player_dashing(self.player1) and self.player1.sword == 1 and self.player1.rect().collidepoint(self.player2.pos):
+            self.player2.damage += 1
+
+        if self.is_player_dashing(self.player2) and self.player2.sword == 1 and self.player2.rect().collidepoint(self.player1.pos):
+            self.player1.damage += 1
+            
+        if self.player1.damage == 3:
+            self.player1.dead += 1
+
+        if self.player2.damage == 3:
+            self.player2.dead += 1
