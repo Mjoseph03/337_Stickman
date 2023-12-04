@@ -9,7 +9,7 @@ from scripts.utils import load_image, load_images, Animation
 from scripts.entities import  Player,InputHandler,BattleManager
 from scripts.tilemap import Tilemap
 from scripts.clouds import Clouds
-from scripts.effects import EffectFactory
+from scripts.effects import EffectGenerator
 
 class Game:
     def __init__(self):
@@ -35,7 +35,8 @@ class Game:
             'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
             'particle/leaf': Animation(load_images('particles/leaf'), img_dur=20, loop=False),
             'particle/particle': Animation(load_images('particles/particle'), img_dur=6, loop=False),
-            'gun': load_image('gun.png'),
+            'gun': load_images('tiles/gun'),
+            'gunImg': load_image('gun.png'),
             'projectile': load_image('projectile.png'),
         }
         
@@ -74,20 +75,21 @@ class Game:
         
         self.player1 = Player(self, (50, 50), (8, 15))
         self.player2 = Player(self, (50, 400), (8, 15))
-        
         self.player1_input = InputHandler(self.player1_controls, self.player1)
         self.player2_input = InputHandler(self.player2_controls, self.player2)
+        
         self.battle_manager = BattleManager(self, self.player1, self.player2)
-
-
-        self.player1.gun = 1
-        self.player2.gun = 1
         
         self.level = 4
         self.load_level(self.level)
+        self.tilemap.spawn_gun_by_chance()
         self.transition = 0
         self.screenshake = 0
-        self.effect_factory = EffectFactory(self, self.assets)
+        self.effects = EffectGenerator(self, self.assets, self.transition)
+    
+    #todo: change transitions to be handled by effectgenerator
+    def next_map_effect(self):
+        self.transition = min(30, self.transition + 1)  
     
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
@@ -132,23 +134,22 @@ class Game:
             self.scroll[0] += (mid_x - self.display.get_width() / 2 - self.scroll[0]) / 30
             self.scroll[1] += (mid_y - self.display.get_height() / 2 - self.scroll[1]) / 30
             
-            #render_scroll = (int(self.scroll[0]), 0)
-            render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
+            render_scroll = (int(self.scroll[0]), 0)
+            #render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
             
             for rect in self.leaf_spawners:
-                pass
+                self.effects.create_leaf(rect)
             
             self.clouds.update()
             self.clouds.render(self.display_2, offset=render_scroll)
+            
             self.tilemap.render(self.display, offset=render_scroll)
             
             self.battle_manager.update()
             
-            # if not self.player1.dead:                   
             self.player1.update(self.tilemap, (self.player1_input.update(), 0))
             self.player1.render(self.display, offset=render_scroll)
             
-            # if not self.player2.dead:
             self.player2.update(self.tilemap, (self.player2_input.update(), 0))
             self.player2.render(self.display, offset=render_scroll)
             
@@ -166,7 +167,7 @@ class Game:
                 #checking if bullet hit a solid block, removing it if true and making a spark
                 if self.tilemap.solid_check(projectile[0]):
                     self.projectiles.remove(projectile)
-                    self.effect_factory.create_collision_spark(projectile)
+                    self.effects.create_collision_spark(projectile)
                        
                 #disposing of bullet after 6 seconds
                 elif projectile[2] > 360:

@@ -128,13 +128,16 @@ class Player(Physics):
         self.health = 10
         self.dead = 0
         self.gun = 0
+        self.picked_up = 0
+        self.can_reset = False
         self.sword = 0
         self.can_respawn = False
          
     def update(self, tilemap, movement=(0, 0)):
         super().update(tilemap, movement=movement)
+        
         self.check_collisions(movement)
-        self.update_self()
+        self.update_status()
         self.update_dashing()
         
     def check_collisions(self, movement):
@@ -183,15 +186,17 @@ class Player(Physics):
             self.velocity[0] = min(self.velocity[0] + 0.1, 0)
             
     def render(self, surf, offset=(0, 0)):
+        if abs(self.dashing) <= 50:
+            super().render(surf, offset=offset)
+            
         #renders gun on top of player
         if self.gun:
             super().render(surf, offset=offset)
             if self.flip:
-                surf.blit(pygame.transform.flip(self.game.assets['gun'], True, False), (self.rect().centerx - 4 - self.game.assets['gun'].get_width() - offset[0], self.rect().centery - offset[1]))
+                surf.blit(pygame.transform.flip(self.game.assets['gunImg'], True, False), (self.rect().centerx - 4 - self.game.assets['gunImg'].get_width() - offset[0], self.rect().centery - offset[1]))
             else:
-                surf.blit(self.game.assets['gun'], (self.rect().centerx + 4 - offset[0], self.rect().centery - offset[1]))
-        if abs(self.dashing) <= 50:
-            super().render(surf, offset=offset)
+                surf.blit(self.game.assets['gunImg'], (self.rect().centerx + 4 - offset[0], self.rect().centery - offset[1]))
+
               
     def jump(self):
         if self.wall_slide:
@@ -224,7 +229,7 @@ class Player(Physics):
     
     def dash_effect(self):
          if abs(self.dashing) in {60, 50}:
-             self.game.effect_factory.create_ball(self)
+             self.game.effects.create_ball(self)
 
     def dash_movement(self):
         #normalizing dashing after its been executed
@@ -242,7 +247,13 @@ class Player(Physics):
                 self.velocity[0] *= 0.1
                 
             #creating the particle stream while dashing
-            self.game.effect_factory.create_dash_stream(self)
+            self.game.effects.create_dash_stream(self)
+    
+    def is_dashing(self):
+        if abs(self.dashing) > 50:
+            return True
+        else:
+            return False
     
     def attack(self):
         self.attacking += 1
@@ -250,12 +261,12 @@ class Player(Physics):
             if (self.flip):
                 #self.game.sfx['shoot'].play()
                 self.game.projectiles.append([[self.rect().centerx - 7, self.rect().centery], -1.5, 0])
-                self.game.effect_factory.create_shooting_spark(self.game.projectiles, True)
+                self.game.effects.create_shooting_spark(self.game.projectiles, True)
 
             if (not self.flip):
                 #self.game.sfx['shoot'].play()
                 self.game.projectiles.append([[self.rect().centerx + 7, self.rect().centery], 1.5, 0])
-                self.game.effect_factory.create_shooting_spark(self.game.projectiles, False)
+                self.game.effects.create_shooting_spark(self.game.projectiles, False)
             
             self.attacking = 0
 
@@ -263,9 +274,13 @@ class Player(Physics):
         if self.sword:
             pass
 
-    def update_self(self):
-        if self.dead:
-            self.game.effect_factory.create_explosion(self)
+    def update_status(self):
+        if self.gun and self.picked_up:
+            self.game.effects.create_explosion(self)
+            self.picked_up = 0
+        
+        if self.dead and self.can_reset:
+            self.game.effects.create_explosion(self)
             self.reset_self()
     
     def reset_self(self):
@@ -277,14 +292,15 @@ class Player(Physics):
         self.attacking = 0
         self.health = 10
         self.gun = 0
-        self.sword = 0
+        self.picked_up = 0
         self.can_respawn = True
+        self.can_reset = False
         
-
     def can_shoot(self):
         if len(self.game.projectiles) < 5:
             return True
         return False
+        
         
 class BattleManager:
     def __init__(self, game, player1, player2):
@@ -298,26 +314,20 @@ class BattleManager:
     def update(self):        
         self.players_collision_bullet(self.game.projectiles)
         self.players_collision_sword()
+
         self.update_map_section(self.game.tilemap)
         self.update_players()
         
     def update_players(self):
-        self.player1.update_self()
-        self.player2.update_self()
-        self.respawn_player_if_dead(self.player1)
-        self.respawn_player_if_dead(self.player2)
-            
-    def is_player_dashing(self, player):
-        if abs(player.dashing) > 50:
-            return True
-        else:
-            return False
-    
-    def is_player_shooting(self):
-        pass
+        for player in [self.player1, self.player2]:
+            player.update_status()
+            if player.dead:
+                player.can_reset = True
+            self.update_weapons(player, self.game.tilemap)
+            self.respawn_player_if_dead(player)
     
     def update_unlocked_section(self):
-        #checking if unlocked players died
+        #checking if unlocked player died
         if self.player1.dead and self.unlock[0]:
             self.unlock[0] = False
         if self.player2.dead and self.unlock[1]:
@@ -331,16 +341,23 @@ class BattleManager:
     
     def update_map_section(self, tilemap):
         self.update_unlocked_section()
-        transition_tiles = tilemap.get_transition_tiles()
-
-        for tile_rect in transition_tiles:
+        
+        for tile_rect in tilemap.get_transition_tiles_loc():
             if self.unlock[0] and self.player1.rect().colliderect(tile_rect):
                 self.next_map(1)
 
             if self.unlock[1] and self.player2.rect().colliderect(tile_rect):
                 self.next_map(2)
 
+    def update_weapons(self, player, tilemap):
+        for tile_rect in tilemap.get_gun_tile_loc():
+            if player.rect().colliderect(tile_rect):
+                player.gun = 1
+                player.picked_up = 1
+                tilemap.despawn_gun_tile()    
+
     def next_map(self, adv_player = 0):
+        print(self.unlock)
         if adv_player:
             if adv_player == 1 and self.current_map < len(self.maps) - 1:
                 self.current_map += 1
@@ -351,17 +368,18 @@ class BattleManager:
                 self.game.load_level(self.current_map) 
             
             self.unlock = [False, False]
+            
+            for player in[self.player1, self.player2]:
+                player.reset_self()
+                
             self.game.next_map_effect()
             
     def players_collision_bullet(self, projectiles):
         for projectile in projectiles.copy():
-            if not self.is_player_dashing(self.player1) and self.player1.rect().collidepoint(projectile[0]):
-                self.player1.dead += 1
-                projectiles.remove(projectile)
-            
-            if not self.is_player_dashing(self.player2) and self.player2.rect().collidepoint(projectile[0]):
-                self.player2.dead += 1
-                projectiles.remove(projectile)
+            for player in [self.player1, self.player2]:
+                if not player.is_dashing() and player.rect().collidepoint(projectile[0]):
+                    player.dead += 1
+                    projectiles.remove(projectile)
     
     def respawn_player_if_dead(self, player):
         if player.can_respawn:
@@ -371,4 +389,3 @@ class BattleManager:
     def players_collision_sword(self):
         #todo: find and use a sword png to do collision detection on. Similar to bullet
         pass    
-    
