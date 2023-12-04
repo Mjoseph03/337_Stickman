@@ -101,7 +101,7 @@ class Game:
         for spawner in self.tilemap.extract([('spawners', 0), ('spawners', 1)]):
             if spawner['variant'] == 0:
                 self.player2.pos = spawner['pos']
-                self.player1.pos = [5,5]
+                self.player1.pos = spawner['pos']
                 self.player1.air_time = 0
                 self.player2.air_time = 0
             
