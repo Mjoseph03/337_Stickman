@@ -125,12 +125,13 @@ class Player(Physics):
         self.wall_slide = False
         self.dashing = 0
         self.attacking = 0
-        self.health = 10
+        self.damage = 0
         self.dead = 0
         self.gun = 0
         self.picked_up = 0
         self.can_reset = False
-        self.sword = 0
+        self.sword = 1
+        self.sword_loc = [0,0]
         self.can_respawn = False
          
     def update(self, tilemap, movement=(0, 0)):
@@ -189,13 +190,25 @@ class Player(Physics):
         if abs(self.dashing) <= 50:
             super().render(surf, offset=offset)
             
-        #renders gun on top of player
-        if self.gun:
-            super().render(surf, offset=offset)
-            if self.flip:
-                surf.blit(pygame.transform.flip(self.game.assets['gunImg'], True, False), (self.rect().centerx - 4 - self.game.assets['gunImg'].get_width() - offset[0], self.rect().centery - offset[1]))
-            else:
-                surf.blit(self.game.assets['gunImg'], (self.rect().centerx + 4 - offset[0], self.rect().centery - offset[1]))
+        if self.action != 'wall_slide':
+            if self.sword and not self.gun:
+                super().render(surf, offset=offset)
+                
+                if self.flip:
+                    self.sword_loc = [self.rect().centerx - 4 - self.game.assets['sword'].get_width() - offset[0], self.rect().centery - 5]
+                    surf.blit(pygame.transform.flip(self.game.assets['sword'], True, False), (self.sword_loc[0], self.sword_loc[1]))
+                else:
+                    self.sword_loc = [self.rect().centerx + 4 - offset[0], self.rect().centery - 5]
+                    surf.blit(self.game.assets['sword'], (self.sword_loc[0], self.sword_loc[1])) 
+            
+            #renders gun on top of player
+            if self.gun:
+                super().render(surf, offset=offset)
+                
+                if self.flip:
+                    surf.blit(pygame.transform.flip(self.game.assets['gunImg'], True, False), (self.rect().centerx - 4 - self.game.assets['gunImg'].get_width() - offset[0], self.rect().centery - offset[1]))
+                else:
+                    surf.blit(self.game.assets['gunImg'], (self.rect().centerx + 4 - offset[0], self.rect().centery - offset[1]))
 
               
     def jump(self):
@@ -275,6 +288,9 @@ class Player(Physics):
             pass
 
     def update_status(self):
+        if self.damage == 3:
+            self.dead += 1
+        
         if self.gun and self.picked_up:
             self.game.effects.create_explosion(self)
             self.picked_up = 0
@@ -290,8 +306,9 @@ class Player(Physics):
         self.wall_slide = False
         self.dashing = 0
         self.attacking = 0
-        self.health = 10
+        self.damage = 0
         self.gun = 0
+        self.sword = 1
         self.picked_up = 0
         self.can_respawn = True
         self.can_reset = False
@@ -357,7 +374,6 @@ class BattleManager:
                 tilemap.despawn_gun_tile()    
 
     def next_map(self, adv_player = 0):
-        print(self.unlock)
         if adv_player:
             if adv_player == 1 and self.current_map < len(self.maps) - 1:
                 self.current_map += 1
@@ -386,6 +402,24 @@ class BattleManager:
             player.pos = [5,5]
             player.can_respawn = False
     
+    def players_collision_dashing(self):
+        for player in [self.player1, self.player2]:
+            if player.is_dashing() and not (player.gun and player.sword):
+                
+                if self.player1.rect().collidepoint(self.player2.pos):
+                    self.player1.damage += 1
+                
+                if self.player2.rect().collidepoint(self.player1.pos):
+                    self.player2.damage += 1
+                
     def players_collision_sword(self):
         #todo: find and use a sword png to do collision detection on. Similar to bullet
-        pass    
+
+        if self.player1.rect().collidepoint(self.player2.sword_loc[0], self.player2.sword_loc[1]):
+            self.player1.damage = 3
+            print(f"p1: {self.player1.rect().collidepoint}, {self.player2.sword_loc[0], self.player2.sword_loc[1]}")
+            
+        if self.player2.rect().collidepoint(self.player1.sword_loc[0], self.player1.sword_loc[1]):
+            self.player2.damage = 3
+            print("player2 sword")
+            

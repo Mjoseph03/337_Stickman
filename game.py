@@ -37,6 +37,7 @@ class Game:
             'particle/particle': Animation(load_images('particles/particle'), img_dur=6, loop=False),
             'gun': load_images('tiles/gun'),
             'gunImg': load_image('gun.png'),
+            'sword': load_image('sword1.png'),
             'projectile': load_image('projectile.png'),
         }
         
