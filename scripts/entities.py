@@ -284,8 +284,9 @@ class Player(Physics):
             self.attacking = 0
 
         #todo: trigger an attack animation/change the attack height
-        if self.sword:
-            pass
+        # if self.sword:
+        # NOTE I feel like here there isn't much to be done with animations, what could be added in the sword collision class 
+        # is the hurt animation for the party that was hit
 
     def update_status(self):
         if self.damage == 3:
@@ -423,3 +424,4 @@ class BattleManager:
             self.player2.damage = 3
             print("player2 sword")
             
+
