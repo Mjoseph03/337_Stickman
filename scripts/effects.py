@@ -77,12 +77,12 @@ class EffectGenerator:
                     self.game.particles.append(Particle(self, 'leaf', pos, velocity=[-0.1, 0.3], frame=random.randint(0, 20)))
     
     def create_shooting_spark(self, projectile, is_flip):
-        temp = 0
+        pi = 0
         if is_flip:
-            temp = math.pi
+            pi = math.pi
             
         for i in range(4):
-            self.game.sparks.append(Spark(projectile[-1][0], random.random() - 0.5 + temp, 2 + random.random()))       
+            self.game.sparks.append(Spark(projectile[-1][0], random.random() - 0.5 + pi, 2 + random.random()))       
 
     def create_collision_spark(self, projectile):
         for i in range(4):
