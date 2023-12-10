@@ -111,6 +111,11 @@ class InputHandler:
             self.player.dash()
         if keys[self.controls['attack']]:
             self.player.attack()
+        # if keys[self.controls['pause']]:
+        #     if self.player.ispaused:
+        #         self.player.ispaused = False
+        #     else:
+        #         self.player.ispaused = True
         
         return movement[1] - movement[0]  
 
@@ -121,6 +126,7 @@ class Player(Physics):
     def __init__(self, game, pos, size):
         super().__init__(game, 'player', pos, size)
         self.air_time = 0
+        self.ispaused = False #added
         self.jumps = 1
         self.wall_slide = False
         self.dashing = 0
@@ -186,6 +192,13 @@ class Player(Physics):
         else:
             self.velocity[0] = min(self.velocity[0] + 0.1, 0)
             
+    # def pause(self):
+    #         pygame.draw.rect(self.game.display, (128, 128, 128, 110), (0, 0, 900, 600))
+    #         self.game.screen.blit(self.game.display, (0, 0))
+
+
+
+
     def render(self, surf, offset=(0, 0)):
         if abs(self.dashing) <= 50:
             super().render(surf, offset=offset)
@@ -299,10 +312,14 @@ class Player(Physics):
         if self.dead and self.can_reset:
             self.game.effects.create_explosion(self)
             self.reset_self()
+
+        # if self.ispaused:
+        #     self.pause()
     
     def reset_self(self):
         self.air_time = 0
         self.jumps = 1
+        #self.pause = 0 #added
         self.dead = 0
         self.wall_slide = False
         self.dashing = 0
