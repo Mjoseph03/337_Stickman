@@ -1,5 +1,5 @@
 import json
-
+import random
 import pygame
 
 AUTOTILE_MAP = {
@@ -16,6 +16,7 @@ AUTOTILE_MAP = {
 
 NEIGHBOR_OFFSETS = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (0, 0), (-1, 1), (0, 1), (1, 1)]
 PHYSICS_TILES = {'grass', 'stone'}
+WEAPON_TILES = {'gun'}
 TRANSITION_TILES = {'decor'} #temp, change later
 AUTOTILE_TYPES = {'grass', 'stone'}
 
@@ -43,7 +44,6 @@ class Tilemap:
                 matches[-1]['pos'][1] *= self.tile_size
                 if not keep:
                     del self.tilemap[loc]
-        
         return matches
     
     def tiles_around(self, pos):
@@ -64,7 +64,6 @@ class Tilemap:
         f = open(path, 'r')
         map_data = json.load(f)
         f.close()
-        
         self.tilemap = map_data['tilemap']
         self.tile_size = map_data['tile_size']
         self.offgrid_tiles = map_data['offgrid']
@@ -75,7 +74,7 @@ class Tilemap:
             if self.tilemap[tile_loc]['type'] in PHYSICS_TILES:
                 return self.tilemap[tile_loc]
     
-    def get_transition_tiles(self):
+    def get_transition_tiles_loc(self):
         transition_tiles = []
         for tile_loc in self.tilemap:
             tile = self.tilemap[tile_loc]
@@ -83,7 +82,27 @@ class Tilemap:
                 tile_rect = pygame.Rect(tile['pos'][0] * self.tile_size, tile['pos'][1] * self.tile_size, self.tile_size, self.tile_size)
                 transition_tiles.append(tile_rect)
         return transition_tiles
-
+    
+    def get_gun_tile_loc(self):
+        gun_tile = []
+        for tile_loc in self.tilemap:
+            tile = self.tilemap[tile_loc]
+            if tile['type'] in WEAPON_TILES:
+                tile_rect = pygame.Rect(tile['pos'][0] * self.tile_size, tile['pos'][1] * self.tile_size, self.tile_size, self.tile_size)
+                gun_tile.append(tile_rect)
+        return gun_tile
+    
+    def spawn_gun_by_chance(self):
+        pass
+        if random.random() > 0.5:
+            print("unlucky")
+            self.despawn_gun_tile()
+    
+    def despawn_gun_tile(self):
+        for tile_loc in list(self.tilemap.keys()):
+            tile = self.tilemap[tile_loc]
+            if tile['type'] in WEAPON_TILES:
+                del self.tilemap[tile_loc]
     
     def physics_rects_around(self, pos):
         rects = []
