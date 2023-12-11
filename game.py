@@ -15,7 +15,7 @@ class Game:
     def __init__(self):
         pygame.init()
         
-        pygame.display.set_caption('ninja game')
+        pygame.display.set_caption('yo')
         self.screen = pygame.display.set_mode((900, 600))
         self.display = pygame.Surface((320, 240), pygame.SRCALPHA)
         self.display_2 = pygame.Surface((320, 240))
@@ -25,22 +25,36 @@ class Game:
             'grass': load_images('tiles/grass'),
             'large_decor': load_images('tiles/large_decor'),
             'stone': load_images('tiles/stone'),
-            'player': load_image('entities/player.png'),
-            'background': load_image('background.png'),
             'clouds': load_images('clouds'),
-            'player/idle': Animation(load_images('entities/player/idle'), img_dur=6),
-            'player/run': Animation(load_images('entities/player/run'), img_dur=4),
-            'player/jump': Animation(load_images('entities/player/jump')),
-            'player/slide': Animation(load_images('entities/player/slide')),
-            'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
+            'background': load_image('background.png'),
+            'gunTile': load_images('tiles/gun'),
             'particle/leaf': Animation(load_images('particles/leaf'), img_dur=20, loop=False),
             'particle/particle': Animation(load_images('particles/particle'), img_dur=6, loop=False),
-            'gun': load_images('tiles/gun'),
+            'particle/blood':Animation(load_images('particles/blood'), img_dur=6, loop=False),
+            
+            'player1': load_image('entities/player1/player1.png'),
+            'player1/idle': Animation(load_images('entities/player1/idle'), img_dur=6),
+            'player1/run': Animation(load_images('entities/player1/run'), img_dur=4),
+            'player1/jump': Animation(load_images('entities/player1/jump')),
+            'player1/slide': Animation(load_images('entities/player1/slide')),
+            'player1/wall_slide': Animation(load_images('entities/player1/wall_slide')),
+            
+            'player2' : load_image('entities/player2/player2.png'),
+            'player2/idle': Animation(load_images('entities/player2/idle'), img_dur=6),
+            'player2/run': Animation(load_images('entities/player2/run'), img_dur=4),
+            'player2/jump': Animation(load_images('entities/player2/jump')),
+            'player2/slide': Animation(load_images('entities/player2/slide')),
+            'player2/wall_slide': Animation(load_images('entities/player2/wall_slide')),
+            
             'gunImg': load_image('gun.png'),
             'sword': load_image('sword1.png'),
             'projectile': load_image('projectile.png'),
         }
-        
+        self.players = []
+        self.projectiles = []
+        self.particles = []
+        self.sparks = []
+        self.scroll = [0, 0]
         self.player1_controls = {
                                 'left' : pygame.K_a,
                                 'right' : pygame.K_d,
@@ -75,24 +89,26 @@ class Game:
         
         self.tilemap = Tilemap(self, tile_size=16)
         self.clouds = Clouds(self.assets['clouds'], count=16)
-        
-        self.player1 = Player(self, (50, 50), (8, 15))
-        self.player2 = Player(self, (50, 400), (8, 15))
+        self.player1 = self.create_player((50, 50), (8, 15), 'player1')
+        self.player2 = self.create_player((50, 400), (8, 15), 'player2')
         self.player1_input = InputHandler(self.player1_controls, self.player1)
         self.player2_input = InputHandler(self.player2_controls, self.player2)
-        
         self.battle_manager = BattleManager(self, self.player1, self.player2)
-        
         self.level = 4
+        self.gun_pos = [0,0]
         self.load_level(self.level)
-        self.tilemap.spawn_gun_by_chance()
         self.transition = 0
-        self.screenshake = 0
+        self.screenshake = 0 
         self.effects = EffectGenerator(self, self.assets, self.transition)
     
     #todo: change transitions to be handled by effectgenerator
     def next_map_effect(self):
         self.transition = min(30, self.transition + 1)  
+    
+    def create_player(self, pos, size, entity):
+        player = Player(self, pos, size, entity)
+        self.players.append(player)
+        return player
     
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
@@ -101,11 +117,15 @@ class Game:
         for tree in self.tilemap.extract([('large_decor', 2)], keep=True):
             self.leaf_spawners.append(pygame.Rect(4 + tree['pos'][0], 4 + tree['pos'][1], 23, 13))
             
-        for spawner in self.tilemap.extract([('spawners', 0), ('spawners', 1)]):
+        for spawner in self.tilemap.extract([('spawners', 0), ('spawners', 1), ('spawners', 2)]):
             if spawner['variant'] == 0:
-                self.player2.pos = spawner['pos']
-                self.player1.pos = spawner['pos']
+                self.player1.pos = list(spawner['pos'])
+                self.player1.respawn_pos = list(spawner['pos'])
                 self.player1.air_time = 0
+            if spawner['variant'] == 1:
+                self.player2.pos = list(spawner['pos'])
+                self.player2.respawn_pos = list(spawner['pos'])
+                self.player2.flip = True
                 self.player2.air_time = 0
             
         self.projectiles = []
@@ -115,7 +135,7 @@ class Game:
         self.dead = 0
         self.ispause = False
         self.transition = -30
-
+        
     def pause(self):
         pygame.draw.rect(self.display, (128, 128, 128, 150), [0, 0, 900, 600])
         self.screen.blit(self.display_2, (0, 0))
@@ -155,7 +175,6 @@ class Game:
             
             if not self.ispause: self.clouds.update()
             self.clouds.render(self.display_2, offset=render_scroll)
-            
             self.tilemap.render(self.display, offset=render_scroll)
             
             self.battle_manager.update()

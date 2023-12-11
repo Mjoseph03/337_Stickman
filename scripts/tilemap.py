@@ -16,7 +16,7 @@ AUTOTILE_MAP = {
 
 NEIGHBOR_OFFSETS = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (0, 0), (-1, 1), (0, 1), (1, 1)]
 PHYSICS_TILES = {'grass', 'stone'}
-WEAPON_TILES = {'gun'}
+WEAPON_TILES = {'gunTile'}
 TRANSITION_TILES = {'decor'} #temp, change later
 AUTOTILE_TYPES = {'grass', 'stone'}
 
@@ -46,7 +46,7 @@ class Tilemap:
                     del self.tilemap[loc]
         return matches
     
-    def tiles_around(self, pos):
+    def get_tiles_around(self, pos):
         tiles = []
         tile_loc = (int(pos[0] // self.tile_size), int(pos[1] // self.tile_size))
         for offset in NEIGHBOR_OFFSETS:
@@ -88,7 +88,10 @@ class Tilemap:
         for tile_loc in self.tilemap:
             tile = self.tilemap[tile_loc]
             if tile['type'] in WEAPON_TILES:
-                tile_rect = pygame.Rect(tile['pos'][0] * self.tile_size, tile['pos'][1] * self.tile_size, self.tile_size, self.tile_size)
+                tile_rect = pygame.Rect(tile['pos'][0] * self.tile_size,
+                                        tile['pos'][1] * self.tile_size,
+                                        self.tile_size,
+                                        self.tile_size)
                 gun_tile.append(tile_rect)
         return gun_tile
     
@@ -104,11 +107,14 @@ class Tilemap:
             if tile['type'] in WEAPON_TILES:
                 del self.tilemap[tile_loc]
     
-    def physics_rects_around(self, pos):
+    def get_physics_rects(self, pos):
         rects = []
-        for tile in self.tiles_around(pos):
+        for tile in self.get_tiles_around(pos):
             if tile['type'] in PHYSICS_TILES:
-                rects.append(pygame.Rect(tile['pos'][0] * self.tile_size, tile['pos'][1] * self.tile_size, self.tile_size, self.tile_size))
+                rects.append(pygame.Rect(tile['pos'][0] * self.tile_size,
+                                         tile['pos'][1] * self.tile_size,
+                                         self.tile_size,
+                                         self.tile_size))
         return rects
     
     def autotile(self):
@@ -133,4 +139,8 @@ class Tilemap:
                 loc = str(x) + ';' + str(y)
                 if loc in self.tilemap:
                     tile = self.tilemap[loc]
-                    surf.blit(self.game.assets[tile['type']][tile['variant']], (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1]))
+                    try:
+                        surf.blit(self.game.assets[tile['type']][tile['variant']], (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1]))
+                    except Exception as e:
+                        print(f"Error rendering: {tile['type']}, {tile['variant']}, {tile['pos']}" )
+    
