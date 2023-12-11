@@ -1,5 +1,5 @@
 import os
-
+import fnmatch
 import pygame
 
 BASE_IMG_PATH = 'data/images/'
@@ -8,7 +8,12 @@ BASE_IMG_PATH = 'data/images/'
 def load_image(path):
     try:
         image = pygame.image.load(BASE_IMG_PATH + path).convert()
-        image.set_colorkey((0, 0, 0))
+        #im not happy with this.. but were running out of time...
+        #accidentally used a different background color for the idle player 2 sprite
+        if fnmatch.fnmatch(path, 'entities/player2/idle/*'):
+            image.set_colorkey((255,255,255))
+        else:
+            image.set_colorkey((0, 0, 0))
     except Exception as e:
         print(f"Failed to load {path}") 
     return image

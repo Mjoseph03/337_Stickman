@@ -28,6 +28,7 @@ class Game:
             'clouds': load_images('clouds'),
             'background': load_image('background.png'),
             'gunTile': load_images('tiles/gun'),
+            'transition': load_images('tiles/transition'),
             'particle/leaf': Animation(load_images('particles/leaf'), img_dur=20, loop=False),
             'particle/particle': Animation(load_images('particles/particle'), img_dur=6, loop=False),
             'particle/blood':Animation(load_images('particles/blood'), img_dur=6, loop=False),
@@ -47,7 +48,7 @@ class Game:
             'player2/wall_slide': Animation(load_images('entities/player2/wall_slide')),
             
             'gunImg': load_image('gun.png'),
-            'sword': load_image('sword1.png'),
+            'sword': load_image('sword.png'),
             'projectile': load_image('projectile.png'),
         }
         self.players = []
@@ -111,8 +112,14 @@ class Game:
     
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
+        self.play_music(map_id)
         
         self.leaf_spawners = []
+        self.particles = []
+        self.sparks = []
+        self.scroll = [0, 0]
+        self.ispause = False
+        
         for tree in self.tilemap.extract([('large_decor', 2)], keep=True):
             self.leaf_spawners.append(pygame.Rect(4 + tree['pos'][0], 4 + tree['pos'][1], 23, 13))
             
@@ -127,19 +134,27 @@ class Game:
                 self.player2.flip = True
                 self.player2.air_time = 0
             
-        self.projectiles = []
-        self.particles = []
-        self.sparks = []
-        self.scroll = [0, 0]
-        self.dead = 0
-        self.ispause = False
+
         self.transition = -30
+    
+    def play_music(self, id):
         
+        pass
+    
     def pause(self):
         pygame.draw.rect(self.display, (128, 128, 128, 150), [0, 0, 900, 600])
         self.screen.blit(self.display_2, (0, 0))
-        
-        
+    
+    def update_all(self):
+        self.player1.update(self.tilemap, (self.player1_input.update(), 0))
+        self.player2.update(self.tilemap, (self.player2_input.update(), 0))
+        self.battle_manager.update()
+    
+    def render_all(self, render_scroll):
+        self.clouds.render(self.display_2, offset=render_scroll)
+        self.tilemap.render(self.display, offset=render_scroll)
+        self.player1.render(self.display, offset=render_scroll)
+        self.player2.render(self.display, offset=render_scroll)
         
     def run(self):
         # pygame.mixer.music.load('data/music.wav')

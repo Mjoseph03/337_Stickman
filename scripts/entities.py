@@ -262,7 +262,7 @@ class Player(Physics):
             return False
     
     def attack(self):
-        if self.attack_cooldown == 0:
+        if self.attack_cooldown == 0 and not self.is_dashing():
             self.attacking += 1
             self.attack_cooldown = 10
         
@@ -305,7 +305,7 @@ class Player(Physics):
             self.damage += 1.5
             self.game.effects.create_damage(self, 2)
             
-        if object == 'bullet':
+        if object == 'gun':
             self.damage += 4
         else:
             self.damage += 1
@@ -313,7 +313,6 @@ class Player(Physics):
     
     #spawns player in based on the spawner position in the map
     def respawn_self(self):
-        #need to create a copy of respawn_pos, otherwise pos and respawn_pos become shared references
         self.pos = list(self.respawn_pos)
         self.need_reset = False
         self.game.effects.create_respawn(self)
@@ -363,11 +362,14 @@ class BattleManager:
     #checks if players unlocked, and if they hit the appropriate tile
     def update_map_section(self, tilemap):
         self.update_unlocked_section()
-        for tile_rect in tilemap.get_transition_tiles_loc():
-            if self.unlock[0] and self.player1.rect().colliderect(tile_rect):
+        for transition_tile in tilemap.get_transition_tiles_loc():
+            tile_loc = transition_tile['coord']
+            tile_var = transition_tile['variant']
+            
+            if self.unlock[0] and self.player1.rect().colliderect(tile_loc) and tile_var == 1:
                 self.next_map(1)
 
-            if self.unlock[1] and self.player2.rect().colliderect(tile_rect):
+            if self.unlock[1] and self.player2.rect().colliderect(tile_loc) and tile_var == 0:
                 self.next_map(2)
 
     #checks if a player picks up a spawned in weapon
@@ -425,7 +427,8 @@ class Weapon:
                 self.update_gun()
                 if self.count_shots > 5:
                     self.change_weapon()
-                
+                    
+        self.dash_collisions()       
         self.projectile_collisions()
         self.sword_collisions()
         
@@ -461,21 +464,33 @@ class Weapon:
     def shoot_projectile(self):
         #self.game.sfx['shoot'].play()
         self.count_shots += 1
-        projectile_speed = -1.5 if self.player.flip else 1.5
+        projectile_speed = -2.5 if self.player.flip else 2.5
         self.game.projectiles.append([[self.gun_pos[0], self.gun_pos[1] + self.gun_height // 2], projectile_speed, 0])
         self.game.effects.create_shooting_spark(self.game.projectiles, self.player.flip)
 
     def projectile_collisions(self):
         for projectile in self.game.projectiles.copy():
             if not self.player.is_dashing() and self.player.rect().collidepoint(projectile[0]):
-                self.player.assign_damage('bullet')
+                print(self.player.weapon.weapon)
+                self.player.assign_damage('gun')
                 self.game.projectiles.remove(projectile)
     
     def sword_collisions(self):
         for opponent in self.game.players:
             if opponent != self.player:
                 if self.hitbox.colliderect(opponent.rect()) and self.player.attacking:
-                    opponent.assign_damage('sword')
+                    opponent.assign_damage(self.player.weapon.weapon)
+    
+    def dash_collisions(self):
+        for opponent in self.game.players:
+            if opponent != self.player and self.player.weapon.weapon != 'gun':
+                if self.player.is_dashing() and self.player.rect().collidepoint(opponent.pos):
+                    if opponent.weapon.weapon == 'sword':
+                        self.player.assign_damage(opponent.weapon.weapon)
+
+                    else:
+                        opponent.assign_damage()
+                
     
     def render(self, surf, offset=(0, 0)):
         if self.enabled:

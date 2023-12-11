@@ -17,7 +17,7 @@ AUTOTILE_MAP = {
 NEIGHBOR_OFFSETS = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (0, 0), (-1, 1), (0, 1), (1, 1)]
 PHYSICS_TILES = {'grass', 'stone'}
 WEAPON_TILES = {'gunTile'}
-TRANSITION_TILES = {'decor'} #temp, change later
+TRANSITION_TILES = {'transition'}
 AUTOTILE_TYPES = {'grass', 'stone'}
 
 class Tilemap:
@@ -79,8 +79,11 @@ class Tilemap:
         for tile_loc in self.tilemap:
             tile = self.tilemap[tile_loc]
             if tile['type'] in TRANSITION_TILES:
-                tile_rect = pygame.Rect(tile['pos'][0] * self.tile_size, tile['pos'][1] * self.tile_size, self.tile_size, self.tile_size)
-                transition_tiles.append(tile_rect)
+                transition_tile = {
+                    'coord': pygame.Rect(tile['pos'][0] * self.tile_size, tile['pos'][1] * self.tile_size, self.tile_size, self.tile_size),
+                    'variant': tile.get('variant', 0)
+                }
+                transition_tiles.append(transition_tile)
         return transition_tiles
     
     def get_gun_tile_loc(self):
@@ -142,5 +145,6 @@ class Tilemap:
                     try:
                         surf.blit(self.game.assets[tile['type']][tile['variant']], (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1]))
                     except Exception as e:
-                        print(f"Error rendering: {tile['type']}, {tile['variant']}, {tile['pos']}" )
+                        pass
+                        #print(f"Error rendering: {tile['type']}, {tile['variant']}, {tile['pos']}" )
     

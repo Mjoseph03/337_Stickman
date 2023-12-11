@@ -26,6 +26,7 @@ class Editor:
             'stone': load_images('tiles/stone'),
             'spawners': load_images('tiles/spawners'),
             'gunTile': load_images('tiles/gun'),
+            'transition': load_images('tiles/transition'),
         }
         
         self.movement = [False, False, False, False]
