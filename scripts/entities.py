@@ -109,11 +109,6 @@ class InputHandler:
             self.player.dash()
         if keys[self.controls['attack']]:
             self.player.attack()
-        # if keys[self.controls['pause']]:
-        #     if self.player.ispaused:
-        #         self.player.ispaused = False
-        #     else:
-        #         self.player.ispaused = True
         
         return movement[1] - movement[0]  
 
@@ -419,6 +414,9 @@ class Weapon:
         self.enabled = False
     
     def update(self):
+        #see comments in update_gun to know why..
+        self.update_gun()
+
         if self.enabled:
             if self.weapon == 'sword':
                 self.update_sword()
@@ -441,9 +439,14 @@ class Weapon:
         gun_y = self.player.pos[1] + (self.player.size[1] - self.gun_height) // 2
         self.gun_pos = (gun_x, gun_y)
         
-        if self.player.attacking:
-            self.shoot_projectile()
-            self.player.attacking = 0
+        #for whatever reason the game gun won't properly update its position without doing this...
+        #given more time id actually fix this instead of doing this hacky shit
+        if self.weapon != 'gun':
+            pass
+        else:
+            if self.player.attacking:
+                self.shoot_projectile()
+                self.player.attacking = 0
     
     def update_sword(self):
         if self.player.flip:
@@ -495,8 +498,9 @@ class Weapon:
     def render(self, surf, offset=(0, 0)):
         if self.enabled:
             if self.weapon == 'sword':
+                #makes sword appear lower during cooldown
                 cooldown_offset = 3 if self.player.attack_cooldown > 0 else 0
-                weapon_pos = (self.hitbox.x - offset[0], self.hitbox.y - offset[1] + cooldown_offset)
+                weapon_pos = (self.hitbox[0] - offset[0], self.hitbox[1] - offset[1] + cooldown_offset)
                 if self.player.flip:
                     surf.blit(pygame.transform.flip(self.game.assets['sword'], True, False), weapon_pos)
                 else:
