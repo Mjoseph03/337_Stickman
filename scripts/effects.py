@@ -76,13 +76,10 @@ class EffectGenerator:
                            rect.y + random.random() * rect.height)
                     self.game.particles.append(Particle(self, 'leaf', pos, velocity=[-0.1, 0.3], frame=random.randint(0, 20)))
     
-    def create_shooting_spark(self, projectile, is_flip):
-        temp = 0
-        if is_flip:
-            temp = math.pi
-            
+    def create_shooting_spark(self, projectile, is_flip = 0):
+        pi = math.pi if is_flip else 0
         for i in range(4):
-            self.game.sparks.append(Spark(projectile[-1][0], random.random() - 0.5 + temp, 2 + random.random()))       
+            self.game.sparks.append(Spark(projectile[-1][0], random.random() - 0.5 + pi, 2 + random.random()))       
 
     def create_collision_spark(self, projectile):
         for i in range(4):
@@ -101,7 +98,51 @@ class EffectGenerator:
             speed = random.random() * 0.5 + 0.5 #random speed
             pvelocity = [math.cos(angle) * speed, math.sin(angle) * speed] #calculating based on speed and angle of particle
             self.game.particles.append(Particle(self.game, 'particle', entity.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
+            
+    def create_damage(self, entity, amount = 1):
+            for i in range(20 * amount):
+                angle = random.random() * math.pi * 2 #random angle within 360 deg
+                speed = (random.random() * 0.5 + 0.5)*2 #random speed
+                pvelocity = [math.cos(angle) * speed, math.sin(angle) * speed] #calculating based on speed and angle of particle
+                self.game.particles.append(Particle(self.game, 'blood', entity.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
+                
+    def create_dead(self, entity):
+        for i in range(50):
+            angle = random.random() * math.pi * 2
+            speed = random.random() * 8
+            self.game.particles.append(Particle(self, 'blood', 
+                                                entity.rect().center,
+                                                velocity=[math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5],
+                                                frame=random.randint(0, 7)))
+            self.game.particles.append(Particle(self, 'particle', 
+                                                entity.rect().center,
+                                                velocity=[math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5],
+                                                frame=random.randint(0, 7)))
+               
+    def create_pickup(self, entity):
+        for i in range(20):
+            angle = random.random() * math.pi * 2 #random angle within 360 deg
+            speed = (random.random() + 0.5) #random speed
+            pvelocity = [math.cos(angle) * speed, math.sin(angle) * speed] #calculating based on speed and angle of particle
+            self.game.particles.append(Particle(self.game, 'particle', entity.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
+        pass
     
+    def create_pickup(self, entity):
+        for i in range(20):
+            angle = random.random() * math.pi * 2 #random angle within 360 deg
+            speed = (random.random() + 0.5) #random speed
+            pvelocity = [math.cos(angle) * speed, math.sin(angle) * speed] #calculating based on speed and angle of particle
+            self.game.particles.append(Particle(self.game, 'particle', entity.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
+        pass
+    
+    def create_respawn(self, entity):
+        for i in range(20):
+            angle = random.random() * math.pi * 2 #random angle within 360 deg
+            speed = random.random() * 0.5 + 0.5 #random speed
+            pvelocity = [math.cos(angle) * speed, math.sin(angle) * speed] #calculating based on speed and angle of particle
+            self.game.sparks.append(Spark(entity.rect().center, angle, 2 + random.random()))
+            self.game.particles.append(Particle(self.game, 'particle', entity.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
+            
     def create_dash_stream(self, entity):
         pvelocity = [abs(entity.dashing) / entity.dashing * random.random() * 3, 0]
         self.game.particles.append(Particle(self.game, 'particle', entity.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
