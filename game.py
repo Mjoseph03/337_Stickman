@@ -201,7 +201,6 @@ class Game:
         #pygame.draw.rect(self.display, (128, 128, 128, 150), [0, 0, 900, 600])
         #self.screen.blit(self.display_2, (0, 0))
         self.display.blit(self.assets['pause_screen'], (0, 0))
-        self.display_2.blit(self.assets['pauseFill'], (0, 0))
 
     def run(self):
         # pygame.mixer.music.load('data/music.wav')
