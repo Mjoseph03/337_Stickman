@@ -72,8 +72,8 @@ class Game:
                                 #'pause'  : pygame.K_SEMICOLON
                             }
         
-        #todo: fix sounds     
-        # self.sfx = {
+        #todo: fix sounds     d
+        # sddelf.sfx = {
         #     'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
         #     'dash': pygame.mixer.Sound('data/sfx/dash.wav'),
         #     'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
