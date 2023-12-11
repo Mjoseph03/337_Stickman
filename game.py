@@ -207,11 +207,11 @@ class Game:
         # self.sfx['ambience'].play(-1)
         
         while True:
-            self.display.fill((0, 0, 0, 0))
-            self.display_2.blit(self.assets['background'], (0, 0))
-            self.screenshake = max(0, self.screenshake - 1)
-            
             if not self.paused:
+                self.display.fill((0, 0, 0, 0))
+                self.display_2.blit(self.assets['background'], (0, 0))
+                self.screenshake = max(0, self.screenshake - 1)
+            
                 if self.transition < 0:
                     self.transition += 1
 
