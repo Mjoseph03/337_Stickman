@@ -95,7 +95,6 @@ class Game:
         self.player2_input = InputHandler(self.player2_controls, self.player2)
         self.battle_manager = BattleManager(self, self.player1, self.player2)
         self.level = 4
-        self.gun_pos = [0,0]
         self.load_level(self.level)
         self.transition = 0
         self.screenshake = 0 
