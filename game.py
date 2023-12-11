@@ -30,6 +30,7 @@ class Game:
             'gunTile': load_images('tiles/gun'),
             'particle/leaf': Animation(load_images('particles/leaf'), img_dur=20, loop=False),
             'particle/particle': Animation(load_images('particles/particle'), img_dur=6, loop=False),
+            'particle/blood':Animation(load_images('particles/blood'), img_dur=6, loop=False),
             
             'player1': load_image('entities/player1/player1.png'),
             'player1/idle': Animation(load_images('entities/player1/idle'), img_dur=6),
@@ -49,7 +50,11 @@ class Game:
             'sword': load_image('sword1.png'),
             'projectile': load_image('projectile.png'),
         }
-        
+        self.players = []
+        self.projectiles = []
+        self.particles = []
+        self.sparks = []
+        self.scroll = [0, 0]
         self.player1_controls = {
                                 'left' : pygame.K_a,
                                 'right' : pygame.K_d,
@@ -82,8 +87,8 @@ class Game:
         
         self.tilemap = Tilemap(self, tile_size=16)
         self.clouds = Clouds(self.assets['clouds'], count=16)
-        self.player1 = Player(self, (50, 50), (8, 15), 'player1')
-        self.player2 = Player(self, (50, 400), (8, 15), 'player2')
+        self.player1 = self.create_player((50, 50), (8, 15), 'player1')
+        self.player2 = self.create_player((50, 400), (8, 15), 'player2')
         self.player1_input = InputHandler(self.player1_controls, self.player1)
         self.player2_input = InputHandler(self.player2_controls, self.player2)
         self.battle_manager = BattleManager(self, self.player1, self.player2)
@@ -97,6 +102,11 @@ class Game:
     #todo: change transitions to be handled by effectgenerator
     def next_map_effect(self):
         self.transition = min(30, self.transition + 1)  
+    
+    def create_player(self, pos, size, entity):
+        player = Player(self, pos, size, entity)
+        self.players.append(player)
+        return player
     
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
@@ -116,11 +126,7 @@ class Game:
                 self.player2.flip = True
                 self.player2.air_time = 0
 
-        self.projectiles = []
-        self.particles = []
-        self.sparks = []
-        self.scroll = [0, 0]
-        self.dead = 0
+
         self.transition = -30
     
     # def respawn(self, entity_type):
@@ -142,7 +148,6 @@ class Game:
         # self.sfx['ambience'].play(-1)
         
         while True:
-            
             self.display.fill((0, 0, 0, 0))
             self.display_2.blit(self.assets['background'], (0, 0))
             self.screenshake = max(0, self.screenshake - 1)
@@ -164,7 +169,6 @@ class Game:
             
             self.clouds.update()
             self.clouds.render(self.display_2, offset=render_scroll)
-            
             self.tilemap.render(self.display, offset=render_scroll)
             
             self.battle_manager.update()
@@ -185,7 +189,7 @@ class Game:
                 #drawing bullet to screen, accounting for image size and the camera scrolling
                 self.display.blit(img, (projectile[0][0] - img.get_width() / 2 - render_scroll[0], projectile[0][1] - img.get_height() / 2 - render_scroll[1]))
             
-                #checking if bullet hit a solid block, removing it if true and making a spark
+                #checking if bullet hit a solid block, removing if true and making a spark
                 if self.tilemap.solid_check(projectile[0]):
                     self.projectiles.remove(projectile)
                     self.effects.create_collision_spark(projectile)
