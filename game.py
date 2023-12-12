@@ -53,11 +53,16 @@ class Game:
             'sword': load_image('sword.png'),
             'projectile': load_image('projectile.png'),
         }
-        self.players = []
-        self.projectiles = []
-        self.particles = []
-        self.sparks = []
-        self.scroll = [0, 0]
+        self.sfx = {
+            'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
+            'dash': pygame.mixer.Sound('data/sfx/dash.wav'),
+            'damage': pygame.mixer.Sound('data/sfx/damage.wav'),
+            'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
+            'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
+            'pickup': pygame.mixer.Sound('data/sfx/pickup.wav'),
+            'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
+            'transition': pygame.mixer.Sound('data/sfx/transition.wav'),
+        }
         self.player1_controls = {
                                 'left' : pygame.K_a,
                                 'right' : pygame.K_d,
@@ -74,17 +79,12 @@ class Game:
                                 'attack' : pygame.K_RSHIFT,
                                 'pause' : pygame.K_ESCAPE
                             }
+        self.players = []
+        self.projectiles = []
+        self.particles = []
+        self.sparks = []
+        self.scroll = [0, 0]
         
-        self.sfx = {
-            'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
-            'dash': pygame.mixer.Sound('data/sfx/dash.wav'),
-            'damage': pygame.mixer.Sound('data/sfx/damage.wav'),
-            'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
-            'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
-            'pickup': pygame.mixer.Sound('data/sfx/pickup.wav'),
-            'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
-            'transition': pygame.mixer.Sound('data/sfx/transition.wav'),
-        }
            
         # self.sfx['damage'].set_volume(0.2)
         # self.sfx['shoot'].set_volume(0.4)
@@ -117,6 +117,8 @@ class Game:
         self.players.append(player)
         return player
     
+    #loads the level. If it tries to load a map that doesn't exist, load main menu instead
+    #handles all the extracting of spawners for players, leaves, and creates the lists for projectiles, sparks, ect
     def load_level(self, map_id):
         self.main_menu = True if map_id == -1 else False
         try:
@@ -142,7 +144,8 @@ class Game:
         
         for tree in self.tilemap.extract([('large_decor', 2)], keep=True):
             self.leaf_spawners.append(pygame.Rect(4 + tree['pos'][0], 4 + tree['pos'][1], 23, 13))
-            
+        
+        #extracts player location based on off grid tiles   
         for spawner in self.tilemap.extract([('spawners', 0), ('spawners', 1), ('spawners', 2)]):
             if spawner['variant'] == 0:
                 self.player1.pos = list(spawner['pos'])
@@ -155,16 +158,19 @@ class Game:
                 self.player2.air_time = 0
         self.transition = -30
     
+    #Main game update loop. 
     def update(self, render_scroll):
         self.clouds.update()
         self.update_battle()
         self.update_particles(render_scroll)
     
+    #updates players and battle manager 
     def update_battle(self):
         self.player1.update(self.tilemap, (self.player1_input.update(), 0))
         self.player2.update(self.tilemap, (self.player2_input.update(), 0))
         self.battle_manager.update()
-           
+    
+    #updates all the effects, such as sparks, particles, projectiles, leafs ect 
     def update_particles(self, render_scroll):
         for rect in self.leaf_spawners:
             self.effects.create_leaf(rect)
@@ -202,6 +208,7 @@ class Game:
             if kill:
                 self.particles.remove(particle)
     
+    #render everything 
     def render_all(self, render_scroll):
         self.clouds.render(self.display_2, offset=render_scroll)
         self.tilemap.render(self.display, offset=render_scroll)
@@ -246,8 +253,8 @@ class Game:
                     pygame.quit()
                     sys.exit()
                     
-                #idk if this is better then using the input handler, imo its better
-                #if the input handler has no direct effect on the game, just the player
+                #idk if this is better then using the input handler, imo its more logical if
+                #the input handler has no direct effect on the game, just the player(s)
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_ESCAPE:
                         self.paused = False if self.paused else True
@@ -261,7 +268,7 @@ class Game:
                 
             self.display_2.blit(self.display, (0, 0))
             
-            #screenshake 
+            #screenshake (never properly implemented, so doesn't get used)
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2)
             self.screen.blit(pygame.transform.scale(self.display_2, self.screen.get_size()), screenshake_offset)
             pygame.display.update()

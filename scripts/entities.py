@@ -363,8 +363,9 @@ class BattleManager:
         for tile_rect in tilemap.get_gun_tile_loc():
             if player.rect().colliderect(tile_rect):
                 player.weapon.change_weapon('gun')
+                self.game.sfx['pickup'].play()
                 tilemap.despawn_gun_tile()    
-
+                
     #logic behind changing maps
     def next_map(self, adv_player = 0):
         if adv_player:
@@ -375,7 +376,7 @@ class BattleManager:
                 self.current_map -= 1
                 self.game.load_level(self.current_map) 
                 
-            #prevents the game from attempting to load a map that doesn't exist
+            #prevents (hopefully) the game from attempting to load a map that doesn't exist
             if adv_player == 1 and self.current_map < len(self.maps) - 1:
                 self.current_map += 1
                 self.game.load_level(self.current_map)
@@ -401,30 +402,25 @@ class Weapon:
         self.gun_width = self.game.assets['gunImg'].get_width()       
         self.gun_height = self.game.assets['gunImg'].get_height()
         self.count_shots = 0
-        
-    def enable(self):
-        self.enabled = True
     
-    def disable(self):
-        self.enabled = False
-    
+    #main weapon update loop
     def update(self):
-        #see comments in update_gun to know why..
+        #see comments in update_gun to know why this is here..
         self.update_gun()
-
-        if self.enabled:
-            if self.weapon == 'sword':
-                self.update_sword()
-                
-            if self.weapon == 'gun':
-                self.update_gun()
-                if self.count_shots > 5:
-                    self.change_weapon()
+        
+        if self.weapon == 'sword':
+            self.update_sword()
+            
+        if self.weapon == 'gun':
+            self.update_gun()
+            if self.count_shots > 5:
+                self.change_weapon()
                     
         self.dash_collisions()       
         self.projectile_collisions()
         self.sword_collisions()
-        
+    
+    #updates gun position based on player
     def update_gun(self):
         if self.player.flip:
             gun_x = self.player.pos[0] - self.gun_width
@@ -434,7 +430,7 @@ class Weapon:
         gun_y = self.player.pos[1] + (self.player.size[1] - self.gun_height) // 2
         self.gun_pos = (gun_x, gun_y)
         
-        #for whatever reason the game gun won't properly update its position without doing this...
+        #for whatever reason the game gun won't properly update the guns position without doing this...
         #given more time id actually fix it instead of doing this hacky shit
         if self.weapon != 'gun':
             pass
@@ -443,6 +439,7 @@ class Weapon:
                 self.shoot_projectile()
                 self.player.attacking = 0
     
+    #updates sword position based on player
     def update_sword(self):
         if self.player.flip:
             sword_x = self.player.pos[0] - self.sword_width
@@ -455,11 +452,12 @@ class Weapon:
             self.sword_collisions()
             self.player.attacking = 0
 
+    #since sword is default, change_weapon will always default to sword but can be overridden for gun
     def change_weapon(self, new_weapon = 'sword'):
         self.weapon = new_weapon
         self.game.effects.create_pickup(self.player)
-        self.game.sfx['pickup'].play()
 
+    #counts the shots, and adds to main game projectile
     def shoot_projectile(self):
         self.count_shots += 1
         projectile_speed = -2.5 if self.player.flip else 2.5
@@ -467,12 +465,16 @@ class Weapon:
         self.game.effects.create_shooting_spark(self.game.projectiles, self.player.flip)
         self.game.sfx['shoot'].play()
 
+    #checks if projectiles collided with player. Was planned to move all projectile logic in here 
+    #but ran out of time..
     def projectile_collisions(self):
         for projectile in self.game.projectiles.copy():
             if not self.player.is_dashing() and self.player.rect().collidepoint(projectile[0]):
                 self.player.assign_damage('gun')
                 self.game.projectiles.remove(projectile)
     
+    #Uses the list of players to clean up the logic. If the player whos holding the sword swings it,
+    #deal damage to the other player
     def sword_collisions(self):
         for opponent in self.game.players:
             if opponent != self.player:
@@ -480,6 +482,8 @@ class Weapon:
                     opponent.assign_damage('sword')
                     self.game.sfx['hit'].play()
     
+    #similar to sword collisions. Only modifier is if a player dashes into an opponent with a sword, 
+    #do damage to them 
     def dash_collisions(self):
         for opponent in self.game.players:
             if opponent != self.player and self.player.weapon.weapon != 'gun':
@@ -491,11 +495,11 @@ class Weapon:
                         
                     self.game.sfx['hit'].play()
 
-    
+    #renders the weapons ontop of players. Kinda annoying, shouldve probably found sprites with animations
     def render(self, surf, offset=(0, 0)):
         if self.enabled:
             if self.weapon == 'sword':
-                #makes sword appear lower during cooldown
+                #lowers the sword during cooldown
                 cooldown_offset = 3 if self.player.attack_cooldown > 0 else 0
                 weapon_pos = (self.hitbox[0] - offset[0], self.hitbox[1] - offset[1] + cooldown_offset)
                 if self.player.flip:

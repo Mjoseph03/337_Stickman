@@ -8,7 +8,7 @@ from scripts.tilemap import Tilemap
 
 RENDER_SCALE = 2.0
 
-#allows for map building, serializes maps to JSON
+#allows for map building, serializes maps to JSON. Mainly unchanged from tutorial
 class Editor:
     def __init__(self):
         pygame.init()
