@@ -45,6 +45,7 @@ class Physics:
         self.pos[0] += frame_movement[0]
         entity_rect = self.rect()
         
+        #only applies to physics to adj. tiles
         for rect in tilemap.get_physics_rects(self.pos):
             if entity_rect.colliderect(rect):
                 if frame_movement[0] > 0:
@@ -120,7 +121,6 @@ class Player(Physics):
         self.entity = entity
         self.respawn_pos = 0
         self.air_time = 0
-        self.ispaused = False #added
         self.jumps = 1
         self.wall_slide = False
         self.dashing = 0
@@ -169,8 +169,10 @@ class Player(Physics):
         if not self.wall_slide:
             if self.air_time > 4:
                 self.set_action('jump')
+                
             elif movement[0] != 0:
                 self.set_action('run')
+                
             else:
                 self.set_action('idle') 
 
@@ -184,10 +186,6 @@ class Player(Physics):
         else:
             self.velocity[0] = min(self.velocity[0] + 0.1, 0)
             
-    # def pause(self):
-    #         pygame.draw.rect(self.game.display, (128, 128, 128, 110), (0, 0, 900, 600))
-    #         self.game.screen.blit(self.game.display, (0, 0))
-    
     #renders player based on current state and weapon type
     def render(self, surf, offset=(0, 0)):
         if abs(self.dashing) <= 50:
@@ -199,6 +197,7 @@ class Player(Physics):
     
     #simple jumping, only complexity is having to account for wall sliding      
     def jump(self):
+        self.game.sfx['jump'].play()
         if self.wall_slide:
             if self.flip and self.last_movement[0] < 0:
                 self.velocity[0] = 3.5
@@ -223,7 +222,7 @@ class Player(Physics):
     #assigning dashing movement
     def dash(self):
         if not self.dashing:
-            # self.game.sfx['dash'].play()
+            self.game.sfx['dash'].play()
             if self.flip:
                 self.dashing = -60
             else:
@@ -251,10 +250,7 @@ class Player(Physics):
             self.game.effects.create_dash_stream(self)
     
     def is_dashing(self):
-        if abs(self.dashing) > 50:
-            return True
-        else:
-            return False
+        return abs(self.dashing) > 50
     
     def attack(self):
         if self.attack_cooldown == 0 and not self.is_dashing():
@@ -268,15 +264,11 @@ class Player(Physics):
         
         if self.dead and self.need_reset:
             self.game.effects.create_dead(self)
+            
             self.reset_self()
-
+            
         #if self.ispaused:
         #     self.pause()
-    
-    #used by the battle manager to initiate a reset 
-    def check_reset(self):
-        if self.dead:
-            self.need_reset = True
     
     #used by the battle manager to initiate a reset 
     def check_reset(self):
@@ -286,40 +278,33 @@ class Player(Physics):
     def reset_self(self):
         self.air_time = 0
         self.jumps = 1
-        #self.pause = 0 #added
         self.dead = 0
         self.wall_slide = False
         self.dashing = 0
         self.attacking = 0
         self.damage = 0
+        self.velocity = [0,0]
         self.respawn_self()
         
     #used by weapon class to assign damage based on the object 
     def assign_damage(self, object = 'dash'):
+        self.game.sfx['damage'].play()
         if object == 'sword':
-            self.damage += 1.5
+            self.damage += 2
             self.game.effects.create_damage(self, 2)
             
         if object == 'gun':
             self.damage += 4
         else:
-            self.damage += 1
+            self.damage += 1.5
             self.game.effects.create_damage(self)
     
     #spawns player in based on the spawner position in the map
     def respawn_self(self):
+        self.weapon.change_weapon()
         self.pos = list(self.respawn_pos)
         self.need_reset = False
         self.game.effects.create_respawn(self)
-        
-    def push(self):
-        if self.flip and self.last_movement[0] < 0:
-            self.velocity[0] = 3.5
-            self.velocity[1] = -2.5
-
-        elif not self.flip and self.last_movement[0] > 0:
-            self.velocity[0] = -3.5
-            self.velocity[1] = -2.5
 
             
 class BattleManager:
@@ -349,7 +334,7 @@ class BattleManager:
         if self.player2.dead and self.unlock[1]:
             self.unlock[1] = False
             
-        if self.player2.dead:
+        if self.player2.dead: 
             self.unlock[0] = True
         if self.player1.dead:
             self.unlock[1] = True
@@ -361,12 +346,18 @@ class BattleManager:
             tile_loc = transition_tile['coord']
             tile_var = transition_tile['variant']
             
+            #special case for main menu, sorta rushed but probably fine
+            if self.game.main_menu:
+                if self.player1.rect().colliderect(tile_loc) or self.player2.rect().colliderect(tile_loc):
+                    self.next_map(3)
+            
+            #regular case, if opponent is dead and collision with correct tile
             if self.unlock[0] and self.player1.rect().colliderect(tile_loc) and tile_var == 1:
                 self.next_map(1)
 
             if self.unlock[1] and self.player2.rect().colliderect(tile_loc) and tile_var == 0:
                 self.next_map(2)
-
+            
     #checks if a player picks up a spawned in weapon
     def check_weapon_pickup(self, player, tilemap):
         for tile_rect in tilemap.get_gun_tile_loc():
@@ -377,22 +368,26 @@ class BattleManager:
     #logic behind changing maps
     def next_map(self, adv_player = 0):
         if adv_player:
-            #prevents the game from attempting to load a map that doesn't exist
-            if adv_player == 1 and self.current_map < len(self.maps) - 1:
-                self.current_map += 1
+            if adv_player == 3 and self.game.main_menu:
                 self.game.load_level(self.current_map)
                 
             if adv_player == 2 and self.current_map > 0:
                 self.current_map -= 1
                 self.game.load_level(self.current_map) 
-            
+                
+            #prevents the game from attempting to load a map that doesn't exist
+            if adv_player == 1 and self.current_map < len(self.maps) - 1:
+                self.current_map += 1
+                self.game.load_level(self.current_map)
+                
             self.unlock = [False, False]
             for player in[self.player1, self.player2]:
                 player.reset_self()
                 
+            self.game.sfx['transition'].play() 
             self.game.next_map_effect()
     
-
+    
 class Weapon:
     def __init__(self, game, player, weapon = 'sword'):
         self.player = player
@@ -440,7 +435,7 @@ class Weapon:
         self.gun_pos = (gun_x, gun_y)
         
         #for whatever reason the game gun won't properly update its position without doing this...
-        #given more time id actually fix this instead of doing this hacky shit
+        #given more time id actually fix it instead of doing this hacky shit
         if self.weapon != 'gun':
             pass
         else:
@@ -463,18 +458,18 @@ class Weapon:
     def change_weapon(self, new_weapon = 'sword'):
         self.weapon = new_weapon
         self.game.effects.create_pickup(self.player)
+        self.game.sfx['pickup'].play()
 
     def shoot_projectile(self):
-        #self.game.sfx['shoot'].play()
         self.count_shots += 1
         projectile_speed = -2.5 if self.player.flip else 2.5
         self.game.projectiles.append([[self.gun_pos[0], self.gun_pos[1] + self.gun_height // 2], projectile_speed, 0])
         self.game.effects.create_shooting_spark(self.game.projectiles, self.player.flip)
+        self.game.sfx['shoot'].play()
 
     def projectile_collisions(self):
         for projectile in self.game.projectiles.copy():
             if not self.player.is_dashing() and self.player.rect().collidepoint(projectile[0]):
-                print(self.player.weapon.weapon)
                 self.player.assign_damage('gun')
                 self.game.projectiles.remove(projectile)
     
@@ -482,18 +477,20 @@ class Weapon:
         for opponent in self.game.players:
             if opponent != self.player:
                 if self.hitbox.colliderect(opponent.rect()) and self.player.attacking:
-                    opponent.assign_damage(self.player.weapon.weapon)
+                    opponent.assign_damage('sword')
+                    self.game.sfx['hit'].play()
     
     def dash_collisions(self):
         for opponent in self.game.players:
             if opponent != self.player and self.player.weapon.weapon != 'gun':
                 if self.player.is_dashing() and self.player.rect().collidepoint(opponent.pos):
                     if opponent.weapon.weapon == 'sword':
-                        self.player.assign_damage(opponent.weapon.weapon)
-
+                        self.player.assign_damage('sword')
                     else:
                         opponent.assign_damage()
-                
+                        
+                    self.game.sfx['hit'].play()
+
     
     def render(self, surf, offset=(0, 0)):
         if self.enabled:

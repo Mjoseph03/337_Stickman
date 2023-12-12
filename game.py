@@ -15,7 +15,7 @@ class Game:
     def __init__(self):
         pygame.init()
         
-        pygame.display.set_caption('yo')
+        pygame.display.set_caption('Ninja Clash')
         self.screen = pygame.display.set_mode((900, 600))
         self.display = pygame.Surface((320, 240), pygame.SRCALPHA)
         self.display_2 = pygame.Surface((320, 240))
@@ -73,19 +73,22 @@ class Game:
                                 'pause' : pygame.K_ESCAPE
                             }
         
-        #todo: fix sounds     d
-        # sddelf.sfx = {
-        #     'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
-        #     'dash': pygame.mixer.Sound('data/sfx/dash.wav'),
-        #     'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
-        #     'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
-        #     'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
-        # }
-        
-        # self.sfx['ambience'].set_volume(0.2)
+        self.sfx = {
+            'jump': pygame.mixer.Sound('data/sfx/jump.wav'),
+            'dash': pygame.mixer.Sound('data/sfx/dash.wav'),
+            'damage': pygame.mixer.Sound('data/sfx/damage.wav'),
+            'hit': pygame.mixer.Sound('data/sfx/hit.wav'),
+            'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
+            'pickup': pygame.mixer.Sound('data/sfx/pickup.wav'),
+            'ambience': pygame.mixer.Sound('data/sfx/ambience.wav'),
+            'transition': pygame.mixer.Sound('data/sfx/transition.wav'),
+        }
+           
+        # self.sfx['damage'].set_volume(0.2)
         # self.sfx['shoot'].set_volume(0.4)
         # self.sfx['hit'].set_volume(0.8)
         # self.sfx['dash'].set_volume(0.3)
+        # self.sfx['pickup'].set_volume(0.7)
         # self.sfx['jump'].set_volume(0.7)
         
         self.tilemap = Tilemap(self, tile_size=16)
@@ -95,26 +98,40 @@ class Game:
         self.player1_input = InputHandler(self.player1_controls, self.player1)
         self.player2_input = InputHandler(self.player2_controls, self.player2)
         self.battle_manager = BattleManager(self, self.player1, self.player2)
-        self.level = 4
+        self.level = -1 #main menu screen
         self.paused = False
         self.load_level(self.level)
         self.transition = 0
         self.screenshake = 0 
+        self.main_menu = True
         self.effects = EffectGenerator(self, self.assets, self.transition)
     
-    #todo: change transitions to be handled by effectgenerator
     def next_map_effect(self):
         self.transition = min(30, self.transition + 1)  
     
+    #I shouldve always been adding players to a list.. implemented this for weapon manager
     def create_player(self, pos, size, entity):
         player = Player(self, pos, size, entity)
         self.players.append(player)
         return player
     
     def load_level(self, map_id):
-        self.tilemap.load('data/maps/' + str(map_id) + '.json')
-        self.play_music(map_id)
-        
+        self.main_menu = True if map_id == -1 else False
+        try:
+            self.tilemap.load('data/maps/' + str(map_id) + '.json')
+            
+        except Exception as e:
+            self.tilemap.load('data/maps/-1.json')
+            print(f"Failed to load map {map_id}, sent to main menu!")
+            
+        try:
+            pygame.mixer.music.load('data/game_music/' + str(map_id) + '.wav')
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(-1)
+            
+        except Exception as e:
+            print(f"Failed to load {'data/game_music/' + str(map_id) + '.wav'}") 
+            
         self.leaf_spawners = []
         self.particles = []
         self.sparks = []
@@ -134,13 +151,7 @@ class Game:
                 self.player2.respawn_pos = list(spawner['pos'])
                 self.player2.flip = True
                 self.player2.air_time = 0
-            
-
         self.transition = -30
-    
-    def play_music(self, id):
-        
-        pass
     
     def update(self, render_scroll):
         self.clouds.update()
@@ -200,12 +211,6 @@ class Game:
         self.screen.blit(self.display_2, (0, 0))
      
     def run(self):
-        # pygame.mixer.music.load('data/music.wav')
-        # pygame.mixer.music.set_volume(0.5)
-        # pygame.mixer.music.play(-1)
-        
-        # self.sfx['ambience'].play(-1)
-        
         while True:
             if not self.paused:
                 self.display.fill((0, 0, 0, 0))
