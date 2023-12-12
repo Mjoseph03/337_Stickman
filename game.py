@@ -27,6 +27,8 @@ class Game:
             'stone': load_images('tiles/stone'),
             'clouds': load_images('clouds'),
             'background': load_image('background.png'),
+            'pause_screen': load_image('pause_screen.png'),
+            'pauseFill': load_image('pauseFill.png'),
             'gunTile': load_images('tiles/gun'),
             'transition': load_images('tiles/transition'),
             'particle/leaf': Animation(load_images('particles/leaf'), img_dur=20, loop=False),
@@ -207,9 +209,10 @@ class Game:
         self.player2.render(self.display, offset=render_scroll)
     
     def pause(self):
-        pygame.draw.rect(self.display, (128, 128, 128, 150), [0, 0, 900, 600])
-        self.screen.blit(self.display_2, (0, 0))
-     
+        #pygame.draw.rect(self.display, (128, 128, 128, 150), [0, 0, 900, 600])
+        #self.screen.blit(self.display_2, (0, 0))
+        self.display.blit(self.assets['pause_screen'], (0, 0))
+
     def run(self):
         while True:
             if not self.paused:
