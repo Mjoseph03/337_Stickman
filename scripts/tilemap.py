@@ -2,7 +2,7 @@ import json
 import random
 import pygame
 
-#autotiling logic, looks through to see if adj tiles are the same or not
+#autotiling logic, determines if adj tiles are the same or not.
 AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (0, 1)])): 0,
     tuple(sorted([(1, 0), (0, 1), (-1, 0)])): 1,
@@ -16,6 +16,8 @@ AUTOTILE_MAP = {
 }
 
 NEIGHBOR_OFFSETS = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (0, 0), (-1, 1), (0, 1), (1, 1)]
+
+#makes it easier to follow the logic, and kinda modular 
 PHYSICS_TILES = {'grass', 'stone'}
 WEAPON_TILES = {'gunTile'}
 TRANSITION_TILES = {'transition'}
@@ -28,7 +30,8 @@ class Tilemap:
         self.tilemap = {}
         self.offgrid_tiles = []
     
-    #extracts 
+    #returns a list of tile, regardless if its on or off grid. Super useful
+    #for spawners
     def extract(self, id_pairs, keep=False):
         matches = []
         for tile in self.offgrid_tiles.copy():
@@ -73,7 +76,7 @@ class Tilemap:
         self.tile_size = map_data['tile_size']
         self.offgrid_tiles = map_data['offgrid']
     
-    #checks for tiles that aren't air tiles 
+    #checks for tiles that arent air tiles 
     def solid_check(self, pos):
         tile_loc = str(int(pos[0] // self.tile_size)) + ';' + str(int(pos[1] // self.tile_size))
         if tile_loc in self.tilemap:

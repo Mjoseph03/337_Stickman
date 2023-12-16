@@ -86,12 +86,6 @@ class EffectGenerator:
             #shooting sparks left if projectile is going right and vice versa                                                           
             self.game.sparks.append(Spark(projectile[0], random.random() - 0.5 + (math.pi if projectile[1] > 0 else 0), 2 + random.random()))
     
-    def create_transition(self, transition):
-        pass
-    
-    def update_transition(self):
-        pass
-    
     def create_ball(self, entity):
         for i in range(20):
             angle = random.random() * math.pi * 2 #random angle within 360 deg
@@ -125,7 +119,6 @@ class EffectGenerator:
             speed = (random.random() + 0.5) #random speed
             pvelocity = [math.cos(angle) * speed, math.sin(angle) * speed] #calculating based on speed and angle of particle
             self.game.particles.append(Particle(self.game, 'particle', entity.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
-        pass
     
     def create_pickup(self, entity):
         for i in range(20):
@@ -133,7 +126,6 @@ class EffectGenerator:
             speed = (random.random() + 0.5) #random speed
             pvelocity = [math.cos(angle) * speed, math.sin(angle) * speed] #calculating based on speed and angle of particle
             self.game.particles.append(Particle(self.game, 'particle', entity.rect().center, velocity=pvelocity, frame=random.randint(0, 7)))
-        pass
     
     def create_respawn(self, entity):
         for i in range(20):
